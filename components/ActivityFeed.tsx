@@ -127,7 +127,7 @@ export default function ActivityFeed() {
         })}
       </div>
 
-      <div className="rounded border border-[#252525] bg-[#0d0d0d] h-[420px] overflow-y-auto">
+      <div className="card-depth rounded border border-[#252525] bg-[#0d0d0d] h-[420px] overflow-y-auto scroll-thin">
         {events === null && (
           <div className="text-center text-[11px] font-mono text-[#444] py-8">
             loading activity…

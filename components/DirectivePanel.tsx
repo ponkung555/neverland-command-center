@@ -80,7 +80,7 @@ export default function DirectivePanel({ agent, onClose }: Props) {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/50 transition-opacity duration-200 z-40 ${
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-[240ms] z-40 ${
           open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -89,7 +89,7 @@ export default function DirectivePanel({ agent, onClose }: Props) {
 
       {/* Slide-out panel */}
       <aside
-        className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-[#0d0d0d] border-l border-[#252525] shadow-2xl z-50 transform transition-transform duration-200 ease-out flex flex-col ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-[#0d0d0d] border-l border-[#252525] shadow-2xl z-50 transform transition-transform duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] flex flex-col ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
         aria-hidden={!open}
@@ -150,10 +150,11 @@ export default function DirectivePanel({ agent, onClose }: Props) {
             <button
               onClick={send}
               disabled={!message.trim() || sending}
-              className="px-4 py-2 rounded text-[12px] font-bold tracking-widest uppercase font-mono transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded text-[12px] font-bold tracking-widest uppercase font-mono transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:-translate-y-[1px] hover:brightness-110 active:translate-y-0"
               style={{
                 backgroundColor: accent,
                 color: '#0d0d0d',
+                boxShadow: `0 4px 12px -4px ${accent}80`,
               }}
             >
               {sending ? 'SENDING…' : 'SEND'}

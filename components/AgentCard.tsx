@@ -14,7 +14,7 @@ export function AgentCardLoading({ id, name }: LoadingProps) {
   const accent = AGENT_ACCENT[id] ?? '#666'
   return (
     <div
-      className="rounded bg-[#141414] border border-[#252525] border-l-[3px] p-4 flex flex-col gap-3"
+      className="card-depth rounded bg-[#141414] border border-[#252525] border-l-[3px] p-4 flex flex-col gap-3 animate-fade-in"
       style={{ borderLeftColor: accent }}
     >
       <div className="flex items-center justify-between">
@@ -70,7 +70,7 @@ export default function AgentCard({ agent, onClick }: Props) {
     <button
       type="button"
       onClick={() => onClick?.(agent)}
-      className="text-left rounded bg-[#141414] border border-[#252525] border-l-[3px] p-4 flex flex-col gap-3 transition-all duration-150 hover:bg-[#171717] hover:border-[#333] hover:-translate-y-[1px] focus:outline-none focus:ring-1 focus:ring-[#444] cursor-pointer"
+      className="card-depth card-depth-hover text-left rounded bg-[#141414] border border-[#252525] border-l-[3px] p-4 flex flex-col gap-3 hover:bg-[#181818] hover:border-[#3a3a3a] hover:-translate-y-[2px] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#444] cursor-pointer animate-fade-in"
       style={{ borderLeftColor: accent }}
       aria-label={`Send directive to ${name}`}
     >

@@ -95,7 +95,7 @@ export default function PipelineBoard() {
           return (
             <div
               key={s.key}
-              className="rounded border border-[#252525] bg-[#0d0d0d] flex flex-col min-h-[280px]"
+              className="card-depth rounded border border-[#252525] bg-[#0d0d0d] flex flex-col min-h-[280px]"
             >
               {/* Column header */}
               <div
@@ -113,7 +113,7 @@ export default function PipelineBoard() {
                 </span>
               </div>
               {/* Cards */}
-              <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[420px]">
+              <div className="flex-1 p-2 space-y-2 overflow-y-auto scroll-thin max-h-[420px]">
                 {reports === null ? (
                   <div className="text-[10px] font-mono text-[#444] text-center py-4">
                     loading…
@@ -137,7 +137,7 @@ export default function PipelineBoard() {
 function ReportTile({ card, stageColor }: { card: ReportCard; stageColor: string }) {
   return (
     <div
-      className="rounded bg-[#141414] border border-[#252525] p-3 flex flex-col gap-1.5 hover:bg-[#171717] hover:border-[#333] transition-colors"
+      className="card-depth card-depth-hover animate-fade-in rounded bg-[#141414] border border-[#252525] p-3 flex flex-col gap-1.5 hover:bg-[#181818] hover:border-[#3a3a3a] hover:-translate-y-[1px]"
       style={{ borderLeft: `3px solid ${stageColor}` }}
     >
       <div className="flex items-baseline justify-between gap-2">

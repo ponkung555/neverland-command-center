@@ -134,9 +134,9 @@ export default function InboxChat() {
         </span>
       </div>
 
-      <div className="rounded border border-[#252525] bg-[#0d0d0d] flex flex-col h-[520px]">
+      <div className="card-depth rounded border border-[#252525] bg-[#0d0d0d] flex flex-col h-[520px]">
         {/* Scrollback */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-thin px-4 py-4 space-y-3">
           {messages === null && (
             <div className="text-center text-[11px] font-mono text-[#444] py-8">
               loading inbox…
@@ -209,7 +209,7 @@ function Bubble({ m }: { m: InboxMessage }) {
   const fromMe = m.sender === POON_ID
   const senderAccent = accentFor(m.sender)
   return (
-    <div className={`flex ${fromMe ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex animate-fade-in ${fromMe ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[78%] flex flex-col gap-1 ${fromMe ? 'items-end' : 'items-start'}`}>
         <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest">
           <span style={{ color: senderAccent }} className="font-bold">
