@@ -6,8 +6,9 @@ import { STATIC_AGENTS } from '@/lib/agents'
 import FleetHeader from './FleetHeader'
 import AgentCard, { AgentCardEmpty, AgentCardLoading } from './AgentCard'
 
-const POLL_MS = 10_000
 const STALE_MS = 30_000
+const RECONNECT_BASE_MS = 1_000
+const RECONNECT_MAX_MS = 30_000
 
 export default function FleetPanel() {
   const [agents, setAgents] = useState<Agent[] | null>(null)
@@ -17,30 +18,56 @@ export default function FleetPanel() {
   const lastAgentsRef = useRef<Agent[] | null>(null)
 
   useEffect(() => {
-    async function poll() {
-      try {
-        const res = await fetch('/api/fleet')
-        if (!res.ok) throw new Error(`${res.status}`)
-        const json: FleetData = await res.json()
-        setAgents(json.agents)
-        lastAgentsRef.current = json.agents
-        setError(false)
-        setLastFetch(Date.now())
-        setStale(false)
-      } catch {
+    let es: EventSource | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let attempt = 0
+    let cancelled = false
+
+    function connect() {
+      if (cancelled) return
+      es = new EventSource('/api/fleet/stream')
+
+      es.addEventListener('fleet', (ev: MessageEvent) => {
+        try {
+          const json: FleetData = JSON.parse(ev.data)
+          setAgents(json.agents)
+          lastAgentsRef.current = json.agents
+          setError(false)
+          setLastFetch(Date.now())
+          setStale(false)
+          attempt = 0
+        } catch {
+          // Ignore malformed payload — next event will retry.
+        }
+      })
+
+      es.onerror = () => {
+        if (cancelled) return
+        es?.close()
+        es = null
         setError(true)
         if (lastAgentsRef.current !== null) {
           setAgents(lastAgentsRef.current)
         }
+        const delay = Math.min(
+          RECONNECT_BASE_MS * 2 ** attempt,
+          RECONNECT_MAX_MS,
+        )
+        attempt += 1
+        reconnectTimer = setTimeout(connect, delay)
       }
     }
 
-    poll()
-    const id = setInterval(poll, POLL_MS)
-    return () => clearInterval(id)
+    connect()
+
+    return () => {
+      cancelled = true
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      es?.close()
+    }
   }, [])
 
-  // Stale indicator — check every 5s after we've had a successful fetch
+  // Stale indicator — check every 5s after first successful event.
   useEffect(() => {
     if (!lastFetch) return
     const id = setInterval(() => {
@@ -70,17 +97,15 @@ export default function FleetPanel() {
 
   return (
     <div className="w-full">
-      {/* Error banner */}
       {showErrorBanner && (
         <div
           className="mx-6 mb-3 px-3 py-2 rounded text-[11px] font-mono border"
           style={{ backgroundColor: '#1a0f0f', borderColor: '#f87171', color: '#f87171' }}
         >
-          ⚠ Fleet API unreachable — showing last known state.
+          ⚠ Fleet stream disconnected — reconnecting; showing last known state.
         </div>
       )}
 
-      {/* Header — skeleton while loading */}
       {isInitialLoading ? (
         <div className="flex items-center justify-between px-6 py-3">
           <span className="text-[11px] tracking-widest uppercase font-mono text-[#555]">
@@ -92,12 +117,10 @@ export default function FleetPanel() {
         <FleetHeader agents={headerAgents} stale={stale} />
       )}
 
-      {/* 3×2 card grid */}
       <div className="grid grid-cols-3 gap-3 px-6 pb-6">
         {renderCards()}
       </div>
 
-      {/* Empty state message */}
       {showEmptyMessage && (
         <p className="text-center text-[11px] font-mono text-[#555] pb-6 -mt-3">
           Fleet data unavailable — API returned no agents.
