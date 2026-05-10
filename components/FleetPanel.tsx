@@ -5,6 +5,7 @@ import type { Agent, FleetData } from '@/lib/types'
 import { STATIC_AGENTS } from '@/lib/agents'
 import FleetHeader from './FleetHeader'
 import AgentCard, { AgentCardEmpty, AgentCardLoading } from './AgentCard'
+import DirectivePanel from './DirectivePanel'
 
 const STALE_MS = 30_000
 const RECONNECT_BASE_MS = 1_000
@@ -15,6 +16,7 @@ export default function FleetPanel() {
   const [error, setError] = useState(false)
   const [lastFetch, setLastFetch] = useState<number | null>(null)
   const [stale, setStale] = useState(false)
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   const lastAgentsRef = useRef<Agent[] | null>(null)
 
   useEffect(() => {
@@ -88,7 +90,9 @@ export default function FleetPanel() {
       return STATIC_AGENTS.map(a => <AgentCardLoading key={a.id} id={a.id} name={a.name} />)
     }
     if (agents && agents.length > 0) {
-      return agents.map(a => <AgentCard key={a.id} agent={a} />)
+      return agents.map(a => (
+        <AgentCard key={a.id} agent={a} onClick={setSelectedAgent} />
+      ))
     }
     return STATIC_AGENTS.map(a => <AgentCardEmpty key={a.id} id={a.id} name={a.name} />)
   }
@@ -126,6 +130,8 @@ export default function FleetPanel() {
           Fleet data unavailable — API returned no agents.
         </p>
       )}
+
+      <DirectivePanel agent={selectedAgent} onClose={() => setSelectedAgent(null)} />
     </div>
   )
 }

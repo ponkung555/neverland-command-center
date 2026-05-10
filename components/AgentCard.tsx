@@ -58,17 +58,21 @@ export function AgentCardEmpty({ id, name }: EmptyProps) {
 
 interface Props {
   agent: Agent
+  onClick?: (agent: Agent) => void
 }
 
-export default function AgentCard({ agent }: Props) {
+export default function AgentCard({ agent, onClick }: Props) {
   const { id, name, status, task, lastAck } = agent
   const accent = AGENT_ACCENT[id] ?? '#666'
   const statusColor = STATUS_COLOR[status as AgentStatus]
 
   return (
-    <div
-      className="rounded bg-[#141414] border border-[#252525] border-l-[3px] p-4 flex flex-col gap-3"
+    <button
+      type="button"
+      onClick={() => onClick?.(agent)}
+      className="text-left rounded bg-[#141414] border border-[#252525] border-l-[3px] p-4 flex flex-col gap-3 transition-all duration-150 hover:bg-[#171717] hover:border-[#333] hover:-translate-y-[1px] focus:outline-none focus:ring-1 focus:ring-[#444] cursor-pointer"
       style={{ borderLeftColor: accent }}
+      aria-label={`Send directive to ${name}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span
@@ -93,6 +97,6 @@ export default function AgentCard({ agent }: Props) {
       <div className="text-[11px] font-mono text-[#555]">
         {formatTimeAgo(lastAck)}
       </div>
-    </div>
+    </button>
   )
 }
