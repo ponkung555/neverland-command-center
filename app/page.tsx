@@ -1,9 +1,9 @@
+import FleetPanel from '@/components/FleetPanel'
+
 export default function Home() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-black text-white">
-      <p className="text-xl tracking-widest font-mono">
-        Neverland Command Center — building
-      </p>
+    <main className="min-h-screen bg-black text-white pt-6">
+      <FleetPanel />
     </main>
   )
 }

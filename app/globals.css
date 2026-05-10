@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  font-family: var(--font-mono), 'Fira Code', ui-monospace, monospace;
+  background-color: #000;
+  color: #fff;
+}
