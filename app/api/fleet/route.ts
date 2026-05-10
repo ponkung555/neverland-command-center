@@ -5,6 +5,7 @@ import path from 'path'
 import type { Agent, AgentStatus } from '@/lib/types'
 
 const BASE = '/home/asus/repos'
+const JEANS_INBOX = path.join(BASE, 'jeans-oracle', 'ψ', 'inbox')
 const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000
 
 const AGENTS = [
@@ -16,7 +17,11 @@ const AGENTS = [
   { id: 'us',      name: 'Us',      session: '50-us',      oracle: 'us-oracle'      },
 ]
 
-const THINKING_RE = /(Thinking|Ruminating|Cogitating|Doodling|Meandering|Booping|Tempering|Whatchamacalliting|Crunching)[^(]*\(\d+[^)]*\)/i
+type PaneSignal = 'thinking' | 'active' | 'idle' | 'missing'
+
+const DOT_THINKING = '◐' // ◐ half circle
+const DOT_ACTIVE   = '●' // ● filled circle
+const DOT_IDLE     = '◌' // ◌ dotted circle
 
 function stripAnsi(s: string): string {
   return s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1B[@-Z\\-_]/g, '')
@@ -28,6 +33,27 @@ function run(cmd: string): string {
   } catch {
     return ''
   }
+}
+
+function parsePaneSignals(raw: string): Map<string, PaneSignal> {
+  const map = new Map<string, PaneSignal>()
+  for (const rawLine of raw.split('\n')) {
+    const line = stripAnsi(rawLine)
+    const m = line.match(/([●◐◌])\s+(\S+):\d+\.\d+\s+(\S+)/)
+    if (!m) continue
+    const [, dot, target, cmd] = m
+    if (cmd === 'bash') continue
+    const session = target
+    let signal: PaneSignal
+    if (dot === DOT_THINKING) signal = 'thinking'
+    else if (dot === DOT_ACTIVE) signal = 'active'
+    else signal = 'idle'
+    const prior = map.get(session)
+    if (!prior || prior === 'idle' || (prior === 'active' && signal === 'thinking')) {
+      map.set(session, signal)
+    }
+  }
+  return map
 }
 
 function getActiveTask(oracle: string): string | null {
@@ -55,48 +81,62 @@ function getLastArchiveTask(oracle: string): string | null {
   }
 }
 
-function getLastAck(oracle: string): string | null {
-  const dirs = [
+function latestMtime(dir: string, predicate: (name: string) => boolean): number {
+  let latest = 0
+  try {
+    for (const file of fs.readdirSync(dir)) {
+      if (file === '.gitkeep' || !predicate(file)) continue
+      const mtime = fs.statSync(path.join(dir, file)).mtimeMs
+      if (mtime > latest) latest = mtime
+    }
+  } catch {}
+  return latest
+}
+
+function getLastAck(agentId: string, oracle: string): string | null {
+  const ownDirs = [
     path.join(BASE, oracle, 'ψ', 'active'),
     path.join(BASE, oracle, 'ψ', 'archive'),
   ]
   let latest = 0
-  for (const dir of dirs) {
-    try {
-      for (const file of fs.readdirSync(dir)) {
-        if (file === '.gitkeep') continue
-        const mtime = fs.statSync(path.join(dir, file)).mtimeMs
-        if (mtime > latest) latest = mtime
-      }
-    } catch {}
+  for (const dir of ownDirs) {
+    const m = latestMtime(dir, () => true)
+    if (m > latest) latest = m
   }
+  const inboxLatest = latestMtime(
+    JEANS_INBOX,
+    name => name.startsWith(`talk-${agentId}-`) || name.startsWith(`ack-${agentId}-`),
+  )
+  if (inboxLatest > latest) latest = inboxLatest
   return latest > 0 ? new Date(latest).toISOString() : null
 }
 
+function deriveStatus(signal: PaneSignal, lastAck: string | null): AgentStatus {
+  if (signal === 'thinking') return 'active'
+  if (signal === 'active') return 'idle'
+  if (signal === 'idle') return 'offline'
+  // signal === 'missing' — pane data unavailable; fall back to lastAck threshold
+  if (!lastAck) return 'offline'
+  return Date.now() - new Date(lastAck).getTime() > OFFLINE_THRESHOLD_MS ? 'offline' : 'idle'
+}
+
 export async function GET() {
-  const lsRaw = stripAnsi(run('maw oracle ls 2>/dev/null'))
+  const panesRaw = run('maw panes 2>/dev/null')
+  const signals = parsePaneSignals(panesRaw)
+  const panesAvailable = signals.size > 0
   const fetchedAt = new Date().toISOString()
 
   const agents: Agent[] = AGENTS.map(agent => {
-    const awake = lsRaw.split('\n').some(
-      l => l.includes('fleet+awake') && new RegExp(`\\b${agent.id}\\b`, 'i').test(l)
-    )
+    const signal: PaneSignal = panesAvailable
+      ? (signals.get(agent.session) ?? 'missing')
+      : 'missing'
 
-    const lastAck = getLastAck(agent.oracle)
+    const lastAck = getLastAck(agent.id, agent.oracle)
     const activeTask = getActiveTask(agent.oracle)
     const archiveTask = getLastArchiveTask(agent.oracle)
     const task = activeTask ?? (archiveTask ? `Last: ${archiveTask}` : null)
 
-    let status: AgentStatus = 'offline'
-
-    if (!awake) {
-      status = 'offline'
-    } else if (lastAck && Date.now() - new Date(lastAck).getTime() > OFFLINE_THRESHOLD_MS) {
-      status = 'offline'
-    } else {
-      const pane = stripAnsi(run(`maw peek ${agent.session} 2>/dev/null`))
-      status = THINKING_RE.test(pane) ? 'active' : 'idle'
-    }
+    const status = deriveStatus(signal, lastAck)
 
     return { id: agent.id, name: agent.name, status, task, lastAck }
   })
